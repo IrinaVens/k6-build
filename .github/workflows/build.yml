@@ -1,19 +1,30 @@
-name: Build k6
+name: Build k6 for Windows
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - run: |
+          cache: false # Отключаем кэш, так как у нас нет файла go.sum в репозитории
+
+      - name: Install MinGW compiler for Windows cross-compilation
+        run: |
           sudo apt-get update
           sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Install xk6 and build k6
+        run: |
           go install go.k6.io/xk6/cmd/xk6@latest
           CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 xk6 build latest --with github.com/mostafa/xk6-kafka/v2@latest
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload k6.exe artifact
+        uses: actions/upload-artifact@v4
         with:
           name: k6-windows
           path: k6.exe
